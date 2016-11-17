@@ -13,13 +13,13 @@ RUN mkdir -p /opt/steamcmd &&\
 	curl -s http://media.steampowered.com/installer/steamcmd_linux.tar.gz | tar -vxz
 
 # Compile application
-RUN mkdir -p /go/src/github.com/fank/steamcmd-gmail
-ADD . /go/src/github.com/fank/steamcmd-gmail
-WORKDIR /go/src/github.com/fank/steamcmd-gmail
+RUN mkdir -p /go/src/github.com/fank/docker-steamcmd-gmail
+ADD . /go/src/github.com/fank/docker-steamcmd-gmail
+WORKDIR /go/src/github.com/fank/docker-steamcmd-gmail
 RUN go get ./... &&\
-	go install github.com/fank/steamcmd-gmail &&\
+	go install github.com/fank/docker-steamcmd-gmail &&\
 	cp client_secret.json /client_secret.json &&\
 	rm /go/src/* -rf
 
 # This container will be executable
-ENTRYPOINT ["/go/bin/steamcmd-gmail"]
+ENTRYPOINT ["/go/bin/docker-steamcmd-gmail"]
