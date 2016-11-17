@@ -1,4 +1,4 @@
-FROM ubuntu:14.04
+FROM golang:latest
 
 MAINTAINER Florian Kinder <florian.kinder@fankserver.com>
 
@@ -12,7 +12,14 @@ RUN mkdir -p /opt/steamcmd &&\
 	cd /opt/steamcmd &&\
 	curl -s http://media.steampowered.com/installer/steamcmd_linux.tar.gz | tar -vxz
 
-WORKDIR /opt/steamcmd
+# Compile application
+RUN mkdir -p /go/src/github.com/fank/steamcmd-gmail
+ADD . /go/src/github.com/fank/steamcmd-gmail
+WORKDIR /go/src/github.com/fank/steamcmd-gmail
+RUN go get ./... &&\
+	go install github.com/fank/steamcmd-gmail &&\
+	cp client_secret.json /client_secret.json &&\
+	rm /go/src/* -rf
 
 # This container will be executable
-ENTRYPOINT ["./steamcmd.sh"]
+ENTRYPOINT ["/go/bin/steamcmd-gmail"]

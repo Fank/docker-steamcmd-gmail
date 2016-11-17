@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -17,6 +16,9 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
+
+	"github.com/kr/pty"
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -24,27 +26,39 @@ import (
 )
 
 func main() {
+	b, err := ioutil.ReadFile("/client_secret.json")
+	if err != nil {
+		log.Fatalf("Unable to read client secret file: %v", err)
+	}
+
+	// If modifying these scopes, delete your previously saved credentials
+	// at ~/.credentials/gmail-go-quickstart.json
+	config, err := google.ConfigFromJSON(b, gmail.GmailReadonlyScope)
+	if err != nil {
+		log.Fatalf("Unable to parse client secret file to config: %v", err)
+	}
+	cacheFile, err := tokenCacheFile()
+	if err != nil {
+		log.Fatalf("Unable to get path to cached credential file. %v", err)
+	}
+	tok, err := tokenFromFile(cacheFile)
+	if err != nil {
+		tok = getTokenFromWeb(config)
+		saveToken(cacheFile, tok)
+	}
+
 	cmd := exec.Command("/opt/steamcmd/steamcmd.sh", strings.Join(os.Args[1:], " "))
-	stdout, err := cmd.StdoutPipe()
+	// cmd := exec.Command("/opt/steamcmd/steamcmd.sh", "+login", "fankserver", "]zw[Vwl^]O![]#^j4zfAZC2v)~F\\BjOs", "+quit")
+	// cmd := exec.Command("/opt/steamcmd/steamcmd.sh", "+login", "fankserver")
+	application, err := pty.Start(cmd)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
-	stderr, err := cmd.StderrPipe()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if err := cmd.Start(); err != nil {
-		log.Fatal(err)
-	}
-
-	go io.Copy(os.Stderr, stderr)
 
 	go func() {
-		scanner := bufio.NewScanner(stdout)
+		scanner := bufio.NewScanner(application)
 		scanner.Split(bufio.ScanBytes)
-		var line string
-		line = ""
+		line := ""
 		for scanner.Scan() {
 			text := scanner.Text()
 			fmt.Print(text)
@@ -57,7 +71,25 @@ func main() {
 
 			switch line {
 			case "Steam Guard code:":
-				// DO SOMETHING
+				tickerGuard := time.NewTicker(time.Second * 5)
+
+				go func() {
+					go func() {
+						time.Sleep(time.Second * 60)
+						tickerGuard.Stop()
+					}()
+
+					for range tickerGuard.C {
+						token := getSteamGuardToken()
+
+						if token != "" {
+							tickerGuard.Stop()
+
+							application.Write([]byte(token + "\n"))
+						}
+					}
+				}()
+
 				break
 			}
 		}
@@ -139,11 +171,11 @@ func saveToken(file string, token *oauth2.Token) {
 	json.NewEncoder(f).Encode(token)
 }
 
-func getSteamGuardToken() {
-	var steamGuardCode string
+func getSteamGuardToken() string {
+	steamGuardToken := ""
 	ctx := context.Background()
 
-	b, err := ioutil.ReadFile("client_secret.json")
+	b, err := ioutil.ReadFile("/client_secret.json")
 	if err != nil {
 		log.Fatalf("Unable to read client secret file: %v", err)
 	}
@@ -162,7 +194,7 @@ func getSteamGuardToken() {
 	}
 
 	user := "me"
-	messageList, err := srv.Users.Messages.List(user).Fields("messages").Q("from:noreply@steampowered.com is:unread").Do()
+	messageList, err := srv.Users.Messages.List(user).Fields("messages").Q("from:noreply@steampowered.com").Do()
 	if err != nil {
 		log.Fatalf("Unable to retrieve messages. %v", err)
 	}
@@ -193,13 +225,15 @@ func getSteamGuardToken() {
 						}
 						steamGuardCodeMatch := steamGuardCodeRegExp.FindStringSubmatch(string(str))
 						if len(steamGuardCodeMatch) > 1 {
-							steamGuardCode = steamGuardCodeMatch[1]
+							steamGuardToken = steamGuardCodeMatch[1]
 							break
 						}
 					}
 				}
 
-				fmt.Printf("%s", steamGuardCode)
+				if steamGuardToken != "" {
+					srv.Users.Messages.Delete(user, message.Id)
+				}
 
 				break
 			}
@@ -207,4 +241,6 @@ func getSteamGuardToken() {
 	} else {
 		fmt.Print("No messages found.")
 	}
+
+	return steamGuardToken
 }
