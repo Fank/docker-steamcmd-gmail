@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strings"
 	"time"
 
 	"github.com/kr/pty"
@@ -14,7 +13,7 @@ import (
 func main() {
 	gmail := NewGMail()
 
-	cmd := exec.Command("/opt/steamcmd/steamcmd.sh", strings.Join(os.Args[1:], " "))
+	cmd := exec.Command("/opt/steamcmd/steamcmd.sh", os.Args[1:]...)
 	application, err := pty.Start(cmd)
 	if err != nil {
 		panic(err)
