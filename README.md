@@ -14,6 +14,11 @@ When the container starts it will start a daemon process which watches steamcmd 
 # Installation
 
 ## Initial
+
+Create a empty credential file
+
+`touch ~/.gmail-credential.json`
+
 For GMail you need to authentificate your account a credential file will be saved this should be stored secure:
 
 `docker run -it --rm -v ~/.gmail-credential.json:/credential.json fank/steamcmd-gmail +quit`
