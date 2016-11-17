@@ -16,13 +16,13 @@ When the container starts it will start a daemon process which watches steamcmd 
 ## Initial
 For GMail you need to authentificate your account a credential file will be saved this should be stored secure:
 
-`docker run -t --rm -v ~/.gmail-credential.json:/credential.json fank/steamcmd-gmail +quit`
+`docker run -it --rm -v ~/.gmail-credential.json:/credential.json fank/steamcmd-gmail +quit`
 
 If you don't trust me you can use our own client secret file, follow "Step 1" https://developers.google.com/gmail/api/quickstart/go
 
 And mount your `client_secret.json`:
 
-`docker run -t --rm -v <your client_secret.json>:/client_secret.json -v ~/.gmail-credential.json:/credential.json  fank/steamcmd-gmail +quit`
+`docker run -it --rm -v <your client_secret.json>:/client_secret.json -v ~/.gmail-credential.json:/credential.json  fank/steamcmd-gmail +quit`
 
 ## Automated
 
