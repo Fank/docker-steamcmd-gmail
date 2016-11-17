@@ -51,18 +51,18 @@ func NewGMail() *GMail {
 	return p
 }
 
-func (this GMail) getClient(config *oauth2.Config) *http.Client {
-	tok, err := this.tokenFromFile(credentialLocation)
+func (g *GMail) getClient(config *oauth2.Config) *http.Client {
+	tok, err := g.tokenFromFile(credentialLocation)
 	if err != nil {
-		tok = this.getTokenFromWeb(config)
-		this.saveToken(credentialLocation, tok)
+		tok = g.getTokenFromWeb(config)
+		g.saveToken(credentialLocation, tok)
 	}
-	return config.Client(this.ctx, tok)
+	return config.Client(g.ctx, tok)
 }
 
 // getTokenFromWeb uses Config to request a Token.
 // It returns the retrieved Token.
-func (this GMail) getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
+func (g *GMail) getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
 	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
 	fmt.Printf("Go to the following link in your browser then type the "+
 		"authorization code: \n%v\n", authURL)
@@ -81,7 +81,7 @@ func (this GMail) getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
 
 // tokenFromFile retrieves a Token from a given file path.
 // It returns the retrieved Token and any read error encountered.
-func (this GMail) tokenFromFile(file string) (*oauth2.Token, error) {
+func (g *GMail) tokenFromFile(file string) (*oauth2.Token, error) {
 	f, err := os.Open(file)
 	if err != nil {
 		return nil, err
@@ -94,7 +94,7 @@ func (this GMail) tokenFromFile(file string) (*oauth2.Token, error) {
 
 // saveToken uses a file path to create a file and store the
 // token in it.
-func (this GMail) saveToken(file string, token *oauth2.Token) {
+func (g *GMail) saveToken(file string, token *oauth2.Token) {
 	fmt.Printf("Saving credential file to: %s\n", file)
 	f, err := os.Create(file)
 	if err != nil {
@@ -104,16 +104,16 @@ func (this GMail) saveToken(file string, token *oauth2.Token) {
 	json.NewEncoder(f).Encode(token)
 }
 
-func (this GMail) getSteamGuardToken() string {
+func (g *GMail) getSteamGuardToken() string {
 	steamGuardToken := ""
 
-	messageList, err := this.srv.Users.Messages.List(this.user).Fields("messages").Q("from:noreply@steampowered.com").Do()
+	messageList, err := g.srv.Users.Messages.List(g.user).Fields("messages").Q("from:noreply@steampowered.com").Do()
 	if err != nil {
 		log.Fatalf("Unable to retrieve messages. %v", err)
 	}
 	if len(messageList.Messages) > 0 {
 		for _, message := range messageList.Messages {
-			messageFull, err := this.srv.Users.Messages.Get(this.user, message.Id).Do()
+			messageFull, err := g.srv.Users.Messages.Get(g.user, message.Id).Do()
 			if err != nil {
 				log.Fatalf("Unable to retrieve full message. %v", err)
 			}
@@ -144,7 +144,10 @@ func (this GMail) getSteamGuardToken() string {
 				}
 
 				if steamGuardToken != "" {
-					this.srv.Users.Messages.Delete(this.user, message.Id)
+					err := g.srv.Users.Messages.Delete(g.user, message.Id)
+					if err != nil {
+						log.Fatalf("Unable to delete message. %v", err)
+					}
 				}
 
 				break
