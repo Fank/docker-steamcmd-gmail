@@ -144,7 +144,7 @@ func (g *GMail) getSteamGuardToken() string {
 				}
 
 				if steamGuardToken != "" {
-					err := g.srv.Users.Messages.Delete(g.user, message.Id)
+					err := g.srv.Users.Messages.Delete(g.user, message.Id).Do()
 					if err != nil {
 						log.Fatalf("Unable to delete message. %v", err)
 					}
